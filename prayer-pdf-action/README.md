@@ -39,8 +39,12 @@ the PDF in that day's Release is replaced.
 
 - Schedule: cron `30 1 * * *` (UTC). GitHub can start scheduled runs a few minutes late, and it
   pauses schedules in repos with no activity for 60 days – any push or manual run re-enables it.
-- Cleanup rules (in `build_prayer_pdf.py`): drops "no sound la"/"no video la", emoji-only messages
-  and exact duplicates from the same person; strips emojis and WeChat codes like `[合十]`/`[Worship]`;
-  tidies names. The run log prints everything dropped.
+- Cleanup rules (in `build_prayer_pdf.py`): drops "no sound la"/"no video la" and emoji-only messages;
+  strips emojis and WeChat codes like `[合十]`/`[Worship]`; tidies names. The run log prints everything dropped.
+- De-duplication (per day, per person): messages are grouped by the user's **id** (not display name, which
+  collides e.g. "WeBuddhist Member"), compared after removing emojis/punctuation/spaces and NFKC-normalising,
+  and merged when identical or at least 90% similar (texts long enough to judge – about 20 Latin or 10 Chinese/Tibetan characters – so short mantras are only merged when identical). The fuller version is kept in
+  the first one's position; on a tie the first wins. Different people are never merged, and the same prayer
+  on a different day is kept (each day is offered separately). Nothing is deleted from the database.
 - If the database only allows known IPs, GitHub-hosted runners won't connect; use a self-hosted
   runner (change `runs-on`) or allow-list GitHub's IP ranges.

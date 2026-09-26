@@ -87,17 +87,40 @@ def avatar(n, email):
     c = PAL[int(hashlib.md5(n.encode()).hexdigest(), 16) % len(PAL)]
     return f'<span class="av ini" style="background:{c}">{initials(n)}</span>'
 
-items = []; DROPPED = []; SEEN = set()
+import unicodedata, difflib
+WECHAT = re.compile(r'\[(?:[A-Za-z]{2,15}|[\u4e00-\u9fff]{1,4})\]')
+def norm(t):
+    """Text used only for duplicate detection: no emojis/WeChat codes/punctuation/spaces, NFKC, lower-case."""
+    t = unicodedata.normalize('NFKC', EMOJI.sub('', WECHAT.sub('', t))).lower()
+    return ''.join(ch for ch in t if unicodedata.category(ch)[0] in 'LNM')
+
+def elen(t): return len(t) + sum(1 for ch in t if ord(ch) > 0x2E80 or 0x0F00 <= ord(ch) <= 0x0FFF)   # CJK/Tibetan count double
+NEAR = 0.90        # same person, same day, >= 90% similar -> one card
+items = []; DROPPED = []; BYUSER = {}
 for r in rows:
     raw = (r.get('message') or '').strip()
     if raw.lower() in SKIP: DROPPED.append(('feedback', raw)); continue
     m = msg(raw)
     if not re.sub('<[^>]+>', '', m).strip(): DROPPED.append(('emoji-only/empty', raw)); continue
     nm = name(r.get('posted_by'))
-    key = (nm, re.sub(r'\s+', '', raw))
-    if key in SEEN: DROPPED.append(('duplicate', nm + ': ' + raw[:40])); continue
-    SEEN.add(key)
-    items.append((nm, m, avatar(nm, r.get('email'))))
+    who = r.get('id') or (r.get('email') or '').lower() or nm          # user id first: display names collide
+    key = norm(raw)
+    dup = None
+    for j in BYUSER.get(who, []):
+        k2 = items[j][3]
+        if key == k2 or (min(elen(key), elen(k2)) >= 20 and difflib.SequenceMatcher(None, key, k2).ratio() >= NEAR):
+            dup = j; break
+    if dup is not None:
+        old = items[dup]
+        if len(key) > len(old[3]):       # keep the fuller version (first one wins a tie), in the first one's place
+            items[dup] = (nm, m, old[2], key, raw)
+            DROPPED.append(('duplicate', nm + ': ' + old[4][:40]))
+        else:
+            DROPPED.append(('duplicate', nm + ': ' + raw[:40]))
+        continue
+    BYUSER.setdefault(who, []).append(len(items))
+    items.append((nm, m, avatar(nm, r.get('email')), key, raw))
+items = [(n, m, a) for n, m, a, _, _ in items]
 
 def WL(m):
     t = re.sub('<[^>]+>', '', m)

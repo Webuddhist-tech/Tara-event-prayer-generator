@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'IST date to build (YYYY-MM-DD). Leave empty for yesterday.'
+        description: 'IST date to rebuild (YYYY-MM-DD). Any earlier day with prayers and no release is built too.'
         required: false
 
 permissions:
@@ -22,7 +22,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 120
     env:
       TZ: Asia/Kolkata
     defaults:
@@ -46,58 +46,69 @@ jobs:
           sudo apt-get install -y -q fonts-noto-cjk fonts-noto-cjk-extra fonts-noto-color-emoji
           python -m playwright install --with-deps chromium
 
-      - name: Export prayer requests from the database
-        id: export
+      # Every finished IST day that has prayers and no prayers-YYYY-MM-DD release
+      # is built. A date typed on "Run workflow" is rebuilt even when its release exists.
+      - name: Build and publish every day that has no release
+        id: build
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python scripts/export_prayers.py ${{ github.event.inputs.date && format('--date {0}', github.event.inputs.date) || '' }}
-
-      - name: Stop if there were no prayers
-        if: steps.export.outputs.count == '0'
-        run: echo "No prayer requests on ${{ steps.export.outputs.date }} - nothing to build."
-
-      # Mints its own Auth0 token from the client credentials on every run, so there is
-      # no token in the repo to expire. Re-downloads every photo, so a profile picture
-      # changed in the app shows up on the next PDF.
-      - name: Fetch avatars from Auth0
-        if: steps.export.outputs.count != '0'
-        env:
           AUTH0_DOMAIN: ${{ secrets.AUTH0_DOMAIN }}
           AUTH0_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
           AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET }}
-        run: python scripts/fetch_avatars.py "${{ steps.export.outputs.json }}"
-
-      - name: Build the A3 PDF
-        if: steps.export.outputs.count != '0'
+          GH_TOKEN: ${{ github.token }}
+          MANUAL_DATE: ${{ github.event.inputs.date }}
         run: |
-          mkdir -p output
-          python scripts/build_prayer_pdf.py \
-            --json "${{ steps.export.outputs.json }}" \
-            --avatars avatars.json --avatar-dir profile_images \
-            --fonts fonts --logo assets/webuddhist_logo.png \
-            --out "output/Prayer_Requests_${{ steps.export.outputs.date }}_A3.pdf"
+          set -euo pipefail
+          mkdir -p output input
+          days=()
+          while IFS= read -r line; do
+            [ -n "$line" ] && days+=("$line")
+          done < <(python scripts/list_prayer_days.py)
+          if [ -n "${MANUAL_DATE:-}" ]; then
+            found=0
+            for d in "${days[@]+"${days[@]}"}"; do
+              [ "$d" = "$MANUAL_DATE" ] && found=1
+            done
+            [ "$found" = 0 ] && days+=("$MANUAL_DATE")
+          fi
+          existing=$(gh api --paginate "/repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[].tag_name')
+          built=0
+          for day in "${days[@]+"${days[@]}"}"; do
+            tag="prayers-${day}"
+            if [ "$day" != "${MANUAL_DATE:-}" ] && printf '%s\n' "$existing" | grep -qx "$tag"; then
+              echo "Release ${tag} already exists"
+              continue
+            fi
+            log=$(python scripts/export_prayers.py --date "$day")
+            printf '%s\n' "$log"
+            count=$(printf '%s\n' "$log" | sed -n 's/^[0-9-]*: \([0-9][0-9]*\) prayer requests.*/\1/p' | tail -1)
+            if [ "${count:-0}" = "0" ]; then
+              echo "No prayer requests on ${day}"
+              continue
+            fi
+            python scripts/fetch_avatars.py "input/${day}.json"
+            python scripts/build_prayer_pdf.py \
+              --json "input/${day}.json" \
+              --avatars avatars.json --avatar-dir profile_images \
+              --fonts fonts --logo assets/webuddhist_logo.png \
+              --out "output/Prayer_Requests_${day}_A3.pdf"
+            pdf="output/Prayer_Requests_${day}_A3.pdf"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release upload "$tag" "$pdf" --clobber
+            else
+              gh release create "$tag" "$pdf" \
+                --title "Prayer requests – ${day}" \
+                --notes "Zabtik Drolchok prayer requests for ${day} (IST): ${count} rows exported. A3 PDF attached – print at 100% / Actual size."
+            fi
+            built=$((built + 1))
+          done
+          echo "Published ${built} day(s)"
+          echo "count=${built}" >> "$GITHUB_OUTPUT"
 
       - name: Upload as run artifact
-        if: steps.export.outputs.count != '0'
+        if: steps.build.outputs.count != '0'
         uses: actions/upload-artifact@v4
         with:
-          name: Prayer_Requests_${{ steps.export.outputs.date }}
-          path: prayer-pdf-action/output/*.pdf     # not a `run` step, so the working-directory default does not apply
+          name: Prayer_Requests
+          path: prayer-pdf-action/output/*.pdf
           retention-days: 90
-
-      - name: Publish as a GitHub Release
-        if: steps.export.outputs.count != '0'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          DAY: ${{ steps.export.outputs.date }}
-          COUNT: ${{ steps.export.outputs.count }}
-        run: |
-          PDF="output/Prayer_Requests_${DAY}_A3.pdf"
-          TAG="prayers-${DAY}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$PDF" --clobber        # re-run for the same day replaces the PDF
-          else
-            gh release create "$TAG" "$PDF" \
-              --title "Prayer requests – ${DAY}" \
-              --notes "Zabtik Drolchok prayer requests for ${DAY} (IST): ${COUNT} rows exported. A3 PDF attached – print at 100% / Actual size."
-          fi
