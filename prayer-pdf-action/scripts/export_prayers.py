@@ -12,6 +12,10 @@ import argparse, datetime, json, os, sys
 from zoneinfo import ZoneInfo
 import psycopg
 
+IST = ZoneInfo('Asia/Kolkata')
+
+# One IST calendar day: from 00:00 IST inclusive to the next 00:00 IST exclusive.
+# A run on 25 Sept (IST) with no --date exports 24 Sept.
 SQL = """
 SELECT m.id AS message_id, m.body AS message, m.created_at,
        trim(concat(u.firstname,' ',coalesce(u.lastname,''))) AS posted_by,
@@ -20,7 +24,8 @@ FROM public.chat_messages m
 JOIN public.users u ON u.id = m.sender_id
 LEFT JOIN public.chat_message_prayers p ON p.message_id = m.id
 WHERE m.message_type = 'PRAYER' AND m.deleted_at IS NULL
-  AND (m.created_at AT TIME ZONE 'Asia/Kolkata')::date = %(day)s
+  AND m.created_at >= %(start)s
+  AND m.created_at < %(end)s
 GROUP BY m.id, m.body, m.created_at, u.firstname, u.lastname, u.username, u.email, u.image, u.id
 ORDER BY m.created_at
 """
@@ -31,7 +36,9 @@ ap.add_argument('--outdir', default='input')
 A = ap.parse_args()
 
 day = (datetime.date.fromisoformat(A.date) if A.date
-       else datetime.datetime.now(ZoneInfo('Asia/Kolkata')).date() - datetime.timedelta(days=1))
+       else datetime.datetime.now(IST).date() - datetime.timedelta(days=1))
+start = datetime.datetime.combine(day, datetime.time.min, tzinfo=IST)
+end = start + datetime.timedelta(days=1)
 
 url = os.environ.get('DATABASE_URL')
 if not url:
@@ -49,7 +56,7 @@ def jsonable(v):
 
 
 with psycopg.connect(url, connect_timeout=20) as conn, conn.cursor() as cur:
-    cur.execute(SQL, {'day': day})
+    cur.execute(SQL, {'start': start, 'end': end})
     cols = [c.name for c in cur.description]
     rows = [{k: jsonable(v) for k, v in zip(cols, r)} for r in cur.fetchall()]
 
