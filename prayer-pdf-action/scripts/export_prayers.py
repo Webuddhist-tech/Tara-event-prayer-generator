@@ -5,7 +5,8 @@ usage: python scripts/export_prayers.py [--date YYYY-MM-DD]      (default: yeste
 env:   DATABASE_URL   postgres://user:pass@host:5432/dbname?sslmode=require   (read-only user recommended)
 
 Writes the same shape as the manual export: { "<sql>": [ {message_id, message, created_at, posted_by,
-username, email, image, id, prayed_count}, ... ] } and prints the date and row count.
+username, email, id, prayed_count}, ... ] } and prints the date and row count.
+Profile photos are not selected here; fetch_avatars.py loads them from Auth0 by email.
 Also writes the date to $GITHUB_OUTPUT (date=..., count=...) when run inside GitHub Actions.
 """
 import argparse, datetime, json, os, sys
@@ -19,14 +20,14 @@ IST = ZoneInfo('Asia/Kolkata')
 SQL = """
 SELECT m.id AS message_id, m.body AS message, m.created_at,
        trim(concat(u.firstname,' ',coalesce(u.lastname,''))) AS posted_by,
-       u.username, u.email, u.image, u.id, count(p.id) AS prayed_count
+       u.username, u.email, u.id, count(p.id) AS prayed_count
 FROM public.chat_messages m
 JOIN public.users u ON u.id = m.sender_id
 LEFT JOIN public.chat_message_prayers p ON p.message_id = m.id
 WHERE m.message_type = 'PRAYER' AND m.deleted_at IS NULL
   AND m.created_at >= %(start)s
   AND m.created_at < %(end)s
-GROUP BY m.id, m.body, m.created_at, u.firstname, u.lastname, u.username, u.email, u.image, u.id
+GROUP BY m.id, m.body, m.created_at, u.firstname, u.lastname, u.username, u.email, u.id
 ORDER BY m.created_at
 """
 
