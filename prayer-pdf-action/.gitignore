@@ -1,0 +1,5 @@
+input/*.json
+avatars.json
+profile_images/
+output/*.pdf
+__pycache__/

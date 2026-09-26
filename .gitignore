@@ -1,0 +1,16 @@
+# Credentials - env.txt holds an Auth0 token and (optionally) the M2M client secret.
+# A leaked token expires in 24 h; a leaked client secret mints new tokens until it is
+# rotated. Never commit it.
+env.txt
+.env
+
+# Fetched avatars: rebuilt from Auth0 on every run, and they are people's photos -
+# no reason to keep them in git history.
+avatars.json
+profile_images/
+
+# Generated PDFs (CI publishes them as Releases instead)
+ouput pdf/
+*.pdf
+
+__pycache__/

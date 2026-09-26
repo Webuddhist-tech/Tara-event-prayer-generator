@@ -1,0 +1,19 @@
+SELECT
+    m.id AS message_id,
+    m.body AS message,
+    m.created_at,
+    trim(u.firstname || ' ' || coalesce(u.lastname, '')) AS posted_by,
+    u.username,
+    u.avatar_url AS image,
+    u.email,
+    u.id,
+    COUNT(p.id) AS prayed_count
+FROM public.chat_messages m
+JOIN public.users u ON u.id = m.sender_id
+LEFT JOIN public.chat_message_prayers p ON p.message_id = m.id
+WHERE m.message_type = 'PRAYER'
+  AND m.deleted_at IS NULL
+  AND m.created_at >= '2026-09-26 00:00:00+05:30'
+  AND m.created_at <  '2026-09-27 00:00:00+05:30'
+GROUP BY m.id, u.id
+ORDER BY m.created_at DESC;
