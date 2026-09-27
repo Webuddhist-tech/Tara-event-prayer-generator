@@ -3,6 +3,7 @@
 
 usage: python3 build_prayer_pdf.py --json 2.json [--avatars avatars.json] [--avatar-dir profile_images]
                                    --fonts FONTDIR --out Prayer_Requests_<date>_A3.pdf [--date "25 September 2026"]
+The header shows "Day: n" (English + Tibetan) top right, counted from DAY_ONE below.
 FONTDIR must contain GARA.TTF, GARABD.TTF, GARAIT.TTF and "Monlam Uni OuChan2.ttf".
 Needs: Pillow, playwright (python) with Chromium, Noto Serif CJK SC/TC + Noto Color Emoji installed.
 """
@@ -24,12 +25,31 @@ data = json.load(open(A.json, encoding='utf-8'))
 rows = list(data.values())[0] if isinstance(data, dict) else data
 SKIP = {s.strip() for s in A.skip.split('|') if s.strip()}
 
+DAY_ONE = datetime.date(2026, 9, 25)      # Zabtik Drolchok day 1 (IST); the header badge counts from here
+
+ts = min((r['created_at'] for r in rows), default=None)
+IST_DAY = ((datetime.datetime.fromisoformat(ts.replace('Z', '+00:00'))
+            + datetime.timedelta(hours=5, minutes=30)).date() if ts else None)
 if A.date:
     DATE = A.date
+    for fmt in ('%Y-%m-%d', '%d %B %Y', '%d %b %Y'):
+        try:
+            IST_DAY = datetime.datetime.strptime(A.date.strip(), fmt).date()
+            break
+        except ValueError:
+            pass
 else:
-    ts = min(r['created_at'] for r in rows)
-    d = datetime.datetime.fromisoformat(ts.replace('Z', '+00:00')) + datetime.timedelta(hours=5, minutes=30)
-    DATE = f"{d.day} {d:%B %Y}"
+    DATE = f"{IST_DAY.day} {IST_DAY:%B %Y}"
+
+# "Day: 3" top right of the header, English + Tibetan (Tibetan digits). Hidden if the day is unknown.
+BO_DIGITS = str.maketrans('0123456789', '༠༡༢༣༤༥༦༧༨༩')
+DAYNO = (IST_DAY - DAY_ONE).days + 1 if IST_DAY else 0
+DAYTAG = ('' if DAYNO < 1 else
+          f'<div class="day"><span class="bo">ཉིན། {str(DAYNO).translate(BO_DIGITS)}</span>'
+          f'<span class="en">Day: {DAYNO}</span>'
+          f'<span class="zhd">第 {DAYNO} 天</span></div>')
+DAYLINE = f'<div class="dayline">{DAYTAG}</div>' if DAYTAG else ''
+ZHDATE = f'{IST_DAY.year}年{IST_DAY.month}月{IST_DAY.day}日' if IST_DAY else ''
 
 HAN = re.compile(r'^[\u3400-\u9fff]+$')
 EMOJI = re.compile('[\U0001F000-\U0001FAFF\u2600-\u27bf\ufe0f\U0001F3FB-\U0001F3FF\u200d]')
@@ -160,11 +180,19 @@ CSS = '''
 body{margin:0;font-family:G,Bo,"Noto Serif CJK SC",serif;color:var(--ink);font-size:10.5pt;line-height:1.42;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .zh{font-size:.9em}
 .bo{font-family:Bo;font-size:1.12em;line-height:1.35}
-header{text-align:center;padding:4mm 0 7mm;border-bottom:2px solid var(--gold)}
+header{position:relative;text-align:center;padding:4mm 0 7mm;border-bottom:2px solid var(--gold)}
+header .dayline{position:absolute;right:0;top:2.5mm}   /* page 1: top-right beside the title; pages 2+: own line */
+.day{display:inline-block;text-align:center;line-height:1.2;border:1px solid var(--rule);border-top:2.5px solid var(--maroon);border-radius:2mm;padding:1.6mm 3.2mm;background:var(--card);box-sizing:border-box}
+.day .en{display:block;font-size:13pt;letter-spacing:.08em;color:var(--gold);margin-top:.8mm}
+.day .zhd{display:block;font-family:'Noto Serif CJK TC',serif;font-size:11pt;color:var(--gold);margin-top:.5mm}
+.day .bo{display:block;font-family:Bo;font-size:14pt;line-height:1.3;color:var(--maroon)}
 header .t{font-family:Bo;font-size:34pt;color:var(--maroon);line-height:1.2}
 header h1{font-weight:400;font-size:32pt;letter-spacing:.16em;text-transform:uppercase;margin:1mm 0;color:var(--maroon)}
 header .subbo{font-family:Bo;font-size:19pt;color:var(--maroon);line-height:1.4;margin-top:2mm}
 header .sub{font-style:italic;font-size:15pt;color:#5a4636;margin-top:1mm}
+header .zht{font-family:'Noto Serif CJK TC',serif;font-size:17pt;letter-spacing:.3em;color:var(--maroon);margin-top:-.5mm}
+header .subzh{font-family:'Noto Serif CJK TC',serif;font-size:13pt;color:#5a4636;margin-top:1mm}
+header .zhm{font-family:'Noto Serif CJK TC',serif;letter-spacing:.08em}
 header .meta{margin-top:3mm;font-size:12pt;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
 .orn{color:var(--gold);font-size:14pt;letter-spacing:.6em;margin-top:2mm}
 .page{position:relative;width:267mm;height:384mm;break-after:page;overflow:hidden}
@@ -186,7 +214,7 @@ header .meta{margin-top:3mm;font-size:12pt;letter-spacing:.22em;text-transform:u
 .end .v{display:block;font-family:Bo;color:var(--maroon);font-size:17pt;line-height:1.5}
 .end .mantra{display:block;font-family:Bo;color:var(--gold);font-size:19pt;line-height:1.5;margin-top:1.5mm}
 .end .tr{display:block;margin-top:3.5mm;font-size:11pt;line-height:1.55;color:#5a4636}
-.end .tr.en{font-style:italic}
+.end .tr.en{font-style:italic;font-size:14pt;line-height:1.45}   /* Garamond runs small: match the Chinese/Tibetan visually */
 .end .tc{font-family:G,'Noto Serif CJK TC',serif;font-size:11pt}
 .brand{display:flex;align-items:center;justify-content:center;gap:3mm;margin-top:7mm}
 .brand img{height:11mm;width:auto}
@@ -202,6 +230,9 @@ window.layout=function(){
  const wOf=s=>s*CW+(s-1)*G;
  const items=[...pool.querySelectorAll('.e')].map(e=>{const s=span(e);e.style.width=wOf(s)+'px';return {el:e,s,w:wOf(s),h:e.getBoundingClientRect().height}});
  hdr.style.width=W+'px'; const hh=hdr.getBoundingClientRect().height+6*MM;
+ const badge=hdr.querySelector('.day'); const bR=badge?badge.getBoundingClientRect():null;
+ const FR=Array(N).fill(bR?bR.height+2*MM+G:0);   // fresh page: the day badge has its own line across the top
+ const fresh=()=>FR.slice();
  const endH={}; for(let s=2;s<=N;s++){end.style.width=wOf(s)+'px';endH[s]=end.getBoundingClientRect().height}
  // pure simulation: returns {pages, pl:[[el,page,x,y,w]]}
  function pack(list, endAt, breakAt){
@@ -214,16 +245,16 @@ window.layout=function(){
    let endDone=false;
    while(q.length){
      let ok=false;
-     if(q[0].brk){q.shift();pages++;cols=Array(N).fill(0);continue}
+     if(q[0].brk){q.shift();pages++;cols=fresh();continue}
      for(let k=0;k<Math.min(q.length,5);k++){const it=q[k];if(it.brk)break;
        let f=null,s=it.s,h=it.h;
        if(it.end){for(let ss=3;ss>=2&&!f;ss--){f=fit(ss,endH[ss]);if(f){s=ss;h=endH[ss]}}}
        else f=fit(s,h);
        if(f){place(it.el,s,h,f);if(it.end)endDone=true;q.splice(k,1);ok=true;break}}
-     if(!ok){ if(Math.max(...cols)===0){const it=q.shift();place(it.el,it.s,it.h,[0,0]);cols=Array(N).fill(H)} else {pages++;cols=Array(N).fill(0)} }
+     if(!ok){ if(cols.every((v,i)=>v===FR[i])){const it=q.shift();place(it.el,it.s,it.h,[0,Math.max(...FR)]);cols=Array(N).fill(H)} else {pages++;cols=fresh()} }
    }
    if(!endDone){let f=null,s;for(s=N;s>=2&&!f;s--)f=fit(s,endH[s]);
-     if(f){s++;place('end',s,endH[s],f)} else {pages++;cols=Array(N).fill(0);place('end',N,endH[N],[0,0])}}
+     if(f){s++;place('end',s,endH[s],f)} else {pages++;cols=fresh();place('end',N,endH[N],[0,Math.max(...FR)])}}
    return {pages,pl};
  }
  let best=pack(items,null);
@@ -233,15 +264,17 @@ window.layout=function(){
  if(onLast(best)===0&&best.pages>1){for(let k=Math.min(12,items.length-1);k>=3;k--){const r=pack(items,null,items.length-k);if(r.pages===best.pages){best=r;break}}}
  const pages=[];for(let i=0;i<best.pages;i++){const p=document.createElement('div');p.className='page';document.body.appendChild(p);pages.push(p)}
  for(const [el,pg,x,y,w] of best.pl){const e=el==='hdr'?hdr:el==='end'?end:el;e.classList.add('placed');e.style.left=x+'px';e.style.top=y+'px';e.style.width=w+'px';pages[pg].appendChild(e)}
+ if(badge){for(let i=1;i<pages.length;i++){const c=badge.cloneNode(true);c.classList.add('placed');c.style.right='0';c.style.left='auto';c.style.top='0';pages[i].appendChild(c)}}
  pool.remove(); return best.pages;
 };
 '''
 
 doc = f'''<!doctype html><html><head><meta charset="utf-8"><style>{CSS}</style></head><body>
-<div id="pool"><header><div class="t">སྐྱབས་ཞུ།</div><h1>Prayer Requests</h1>
+<div id="pool"><header>{DAYLINE}<div class="t">སྐྱབས་ཞུ།</div><h1>Prayer Requests</h1><div class="zht">祈 願 請 求</div>
 <div class="subbo">ཟབ་ཏིག་སྒྲོལ་ཆོག་ཐད་གཏོང་སྟེང་འབྱོར་བའི་སྐྱབས་ཞུ།</div>
 <div class="sub">Prayer requests received through the live broadcast of the Zabtik Drolchok (Profound Essence Tara Puja)</div>
-<div class="meta">{html.escape(DATE)} &nbsp;·&nbsp; {len(items)} requests</div></header>
+<div class="subzh">於甚深心要度母法會（Zabtik Drolchok）直播中所收到的祈願</div>
+<div class="meta">{html.escape(DATE)} &nbsp;·&nbsp; {len(items)} requests &nbsp;·&nbsp; <span class="zhm">{ZHDATE} &nbsp;{len(items)} 則祈願</span></div></header>
 {entries}
 {CLOSING}</div>
 <script>{JS}</script></body></html>'''
@@ -257,7 +290,7 @@ FOOT_LOGO = f'<img src="data:{mt};base64,{b64}" style="height:24px;vertical-alig
 FOOTER = ('<div style="width:100%;margin:0 15mm;display:flex;justify-content:space-between;align-items:center;'
           'font-size:9pt;color:#b8872b;font-family:serif;-webkit-print-color-adjust:exact">'
           f'<span>{FOOT_LOGO}</span>'
-          '<span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
+          f'<span>{html.escape(DATE)} &nbsp;·&nbsp; <span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
 
 from playwright.sync_api import sync_playwright
 with sync_playwright() as pw:

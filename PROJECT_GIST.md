@@ -25,7 +25,7 @@ Messages are multilingual: English, Tibetan, Chinese (Simplified + Traditional),
 
 ## Output design
 - A3 portrait PDF, 3-column masonry card grid (short cards pack tightly, very long prayers flow across columns)
-- Header: Tibetan "སྨོན་ལམ།", "PRAYER REQUESTS", "Respectfully offered for the Lama's prayers and blessings", date + count
+- Header: Tibetan "སྨོན་ལམ།", "PRAYER REQUESTS", "Respectfully offered for the Lama's prayers and blessings", date + count, and a "Day: n" badge (English + Tibetan) top right counted from day 1 = 25 Sept 2026 (DAY_ONE in build_prayer_pdf.py)
 - Each card: round avatar + name + "No. XX", then the message
 - Footer blessing: "སེམས་ཅན་ཐམས་ཅད་བདེ་བ་དང་ལྡན་པར་གྱུར་ཅིག" / "May all beings have happiness and the causes of happiness."
 - Palette: maroon #7a1f1f, gold #b8872b, cream card #fdf8ee
