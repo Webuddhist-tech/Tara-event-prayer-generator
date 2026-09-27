@@ -186,11 +186,11 @@ header .dayline{position:absolute;right:0;top:2.5mm}   /* page 1: top-right besi
 .day .en{display:block;font-size:13pt;letter-spacing:.08em;color:var(--gold);margin-top:.8mm}
 .day .zhd{display:block;font-family:'Noto Serif CJK TC',serif;font-size:11pt;color:var(--gold);margin-top:.5mm}
 .day .bo{display:block;font-family:Bo;font-size:14pt;line-height:1.3;color:var(--maroon)}
-header .t{font-family:Bo;font-size:34pt;color:var(--maroon);line-height:1.2}
-header h1{font-weight:400;font-size:32pt;letter-spacing:.16em;text-transform:uppercase;margin:1mm 0;color:var(--maroon)}
+header .t{font-family:G,Bo;font-size:28pt;color:var(--maroon);line-height:1.3}
+header h1{font-weight:400;font-size:28pt;letter-spacing:.05em;margin:1mm 0;color:var(--maroon)}
 header .subbo{font-family:Bo;font-size:19pt;color:var(--maroon);line-height:1.4;margin-top:2mm}
 header .sub{font-style:italic;font-size:15pt;color:#5a4636;margin-top:1mm}
-header .zht{font-family:'Noto Serif CJK TC',serif;font-size:17pt;letter-spacing:.3em;color:var(--maroon);margin-top:-.5mm}
+header .zht{font-family:'Noto Serif CJK TC',serif;font-size:17pt;letter-spacing:.12em;color:var(--maroon);margin-top:-.5mm}
 header .subzh{font-family:'Noto Serif CJK TC',serif;font-size:13pt;color:#5a4636;margin-top:1mm}
 header .zhm{font-family:'Noto Serif CJK TC',serif;letter-spacing:.08em}
 header .meta{margin-top:3mm;font-size:12pt;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
@@ -270,7 +270,7 @@ window.layout=function(){
 '''
 
 doc = f'''<!doctype html><html><head><meta charset="utf-8"><style>{CSS}</style></head><body>
-<div id="pool"><header>{DAYLINE}<div class="t">སྐྱབས་ཞུ།</div><h1>Prayer Requests</h1><div class="zht">迴 向 祈 願 名 單</div>
+<div id="pool"><header>{DAYLINE}<div class="t">WeBuddhist ཉེར་སྤྱོད་ནས་འབྱོར་བའི་སྐྱབས་ཞུ།</div><h1>Prayer Requests received from WeBuddhist App</h1><div class="zht">來自 WeBuddhist App 的迴向祈願名單</div>
 <div class="subbo">ཟབ་ཏིག་སྒྲོལ་ཆོག་ཐད་གཏོང་སྟེང་འབྱོར་བའི་སྐྱབས་ཞུ།</div>
 <div class="sub">Prayer requests received through the live broadcast of the Zabtik Drolchok (Profound Essence Tara Puja)</div>
 <div class="subzh">於甚深心要度母法會（Zabtik Drolchok）直播中所收到的迴向祈願名單</div>
