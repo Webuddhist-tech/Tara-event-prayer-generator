@@ -270,10 +270,10 @@ window.layout=function(){
 '''
 
 doc = f'''<!doctype html><html><head><meta charset="utf-8"><style>{CSS}</style></head><body>
-<div id="pool"><header>{DAYLINE}<div class="t">སྐྱབས་ཞུ།</div><h1>Prayer Requests</h1><div class="zht">祈 願 請 求</div>
+<div id="pool"><header>{DAYLINE}<div class="t">སྐྱབས་ཞུ།</div><h1>Prayer Requests</h1><div class="zht">迴 向 祈 願 名 單</div>
 <div class="subbo">ཟབ་ཏིག་སྒྲོལ་ཆོག་ཐད་གཏོང་སྟེང་འབྱོར་བའི་སྐྱབས་ཞུ།</div>
 <div class="sub">Prayer requests received through the live broadcast of the Zabtik Drolchok (Profound Essence Tara Puja)</div>
-<div class="subzh">於甚深心要度母法會（Zabtik Drolchok）直播中所收到的祈願</div>
+<div class="subzh">於甚深心要度母法會（Zabtik Drolchok）直播中所收到的迴向祈願名單</div>
 <div class="meta">{html.escape(DATE)} &nbsp;·&nbsp; {len(items)} requests &nbsp;·&nbsp; <span class="zhm">{ZHDATE} &nbsp;{len(items)} 則祈願</span></div></header>
 {entries}
 {CLOSING}</div>
