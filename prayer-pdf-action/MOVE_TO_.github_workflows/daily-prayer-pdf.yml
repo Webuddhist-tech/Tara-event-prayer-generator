@@ -64,7 +64,7 @@ jobs:
           python scripts/build_prayer_pdf.py \
             --json "${{ steps.export.outputs.json }}" \
             --avatars avatars.json --avatar-dir profile_images \
-            --fonts fonts --logo assets/webuddhist_logo.png \
+            --fonts fonts \
             --out "output/Prayer_Requests_${{ steps.export.outputs.date }}_A3.pdf"
 
       - name: Upload as run artifact

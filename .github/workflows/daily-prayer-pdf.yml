@@ -90,7 +90,7 @@ jobs:
             python scripts/build_prayer_pdf.py \
               --json "input/${day}.json" \
               --avatars avatars.json --avatar-dir profile_images \
-              --fonts fonts --logo assets/webuddhist_logo.png \
+              --fonts fonts \
               --out "output/Prayer_Requests_${day}_A3.pdf"
             pdf="output/Prayer_Requests_${day}_A3.pdf"
             if gh release view "$tag" >/dev/null 2>&1; then

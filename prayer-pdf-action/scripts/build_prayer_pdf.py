@@ -17,7 +17,6 @@ ap.add_argument('--avatar-dir')
 ap.add_argument('--fonts', required=True)
 ap.add_argument('--out', required=True)
 ap.add_argument('--date')
-ap.add_argument('--logo', help='WeBuddhist logo+wordmark image (png, dark text) shown at the end')
 ap.add_argument('--skip', default='no sound la|no video la', help='|-separated exact messages to drop (lowercase)')
 A = ap.parse_args()
 
@@ -160,15 +159,7 @@ CLOSING = (
     '<span class="mantra">ཨོཾ་ཏཱ་རེ་ཏུཏྟཱ་རེ་ཏུ་རེ་སྭཱ་ཧཱ།</span>'
     '<span class="tr tc" lang="zh-Hant">至尊聖度母祈以大悲攝受，<br>祈願救度我們脫離一切怖畏與苦難。<br>嗡 達咧 都達咧 都咧 梭哈</span>'
     '<span class="tr en">Noble Arya Tara, embrace us with compassion;<br>Protect us from every fear and suffering.<br>Oṃ Tāre Tuttāre Ture Svāhā</span>'
-    '<span class="emo2">🙏🙏🙏</span>__BRAND__</div>')
-
-import base64, mimetypes
-BRAND = ''
-if A.logo and os.path.exists(A.logo):
-    mt = mimetypes.guess_type(A.logo)[0] or 'image/png'
-    b64 = base64.b64encode(open(A.logo, 'rb').read()).decode()
-    BRAND = f'<div class="brand"><img src="data:{mt};base64,{b64}" alt="WeBuddhist"></div>'
-CLOSING = CLOSING.replace('__BRAND__', '')   # logo lives in the page footer now
+    '<span class="emo2">🙏🙏🙏</span></div>')
 
 CSS = '''
 @font-face{font-family:G;src:url(GARA.TTF)}
@@ -216,8 +207,6 @@ header .meta{margin-top:3mm;font-size:12pt;letter-spacing:.22em;text-transform:u
 .end .tr{display:block;margin-top:3.5mm;font-size:11pt;line-height:1.55;color:#5a4636}
 .end .tr.en{font-style:italic;font-size:14pt;line-height:1.45}   /* Garamond runs small: match the Chinese/Tibetan visually */
 .end .tc{font-family:G,'Noto Serif CJK TC',serif;font-size:11pt}
-.brand{display:flex;align-items:center;justify-content:center;gap:3mm;margin-top:7mm}
-.brand img{height:11mm;width:auto}
 .end .emo2{display:block;font-family:'Noto Color Emoji';font-size:13pt;margin-top:3.5mm;letter-spacing:.25em;text-indent:.25em}
 '''
 
@@ -270,7 +259,7 @@ window.layout=function(){
 '''
 
 doc = f'''<!doctype html><html><head><meta charset="utf-8"><style>{CSS}</style></head><body>
-<div id="pool"><header>{DAYLINE}<div class="t">WeBuddhist ཉེར་སྤྱོད་ནས་འབྱོར་བའི་སྐྱབས་ཞུ།</div><h1>Prayer Requests received from WeBuddhist App</h1><div class="zht">來自 WeBuddhist App 的迴向祈願名單</div>
+<div id="pool"><header>{DAYLINE}<div class="t">སྐྱབས་ཞུ།</div><h1>Prayer Requests</h1><div class="zht">迴向祈願名單</div>
 <div class="subbo">ཟབ་ཏིག་སྒྲོལ་ཆོག་ཐད་གཏོང་སྟེང་འབྱོར་བའི་སྐྱབས་ཞུ།</div>
 <div class="sub">Prayer requests received through the live broadcast of the Zabtik Drolchok (Profound Essence Tara Puja)</div>
 <div class="subzh">於甚深心要度母法會（Zabtik Drolchok）直播中所收到的迴向祈願名單</div>
@@ -285,11 +274,9 @@ for f in ['GARA.TTF', 'GARABD.TTF', 'GARAIT.TTF', 'Monlam Uni OuChan2.ttf']:
 page_html = os.path.join(work, 'prayers.html')
 open(page_html, 'w', encoding='utf-8').write(doc)
 
-# footer on every page: WeBuddhist logo + page number
-FOOT_LOGO = f'<img src="data:{mt};base64,{b64}" style="height:24px;vertical-align:middle">' if BRAND else '<span style="font-weight:700;color:#2b1d14">WeBuddhist</span>'
-FOOTER = ('<div style="width:100%;margin:0 15mm;display:flex;justify-content:space-between;align-items:center;'
+# footer on every page: date + page number, bottom right
+FOOTER = ('<div style="width:100%;margin:0 15mm;display:flex;justify-content:flex-end;align-items:center;'
           'font-size:9pt;color:#b8872b;font-family:serif;-webkit-print-color-adjust:exact">'
-          f'<span>{FOOT_LOGO}</span>'
           f'<span>{html.escape(DATE)} &nbsp;·&nbsp; <span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
 
 from playwright.sync_api import sync_playwright
