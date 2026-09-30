@@ -155,7 +155,7 @@ entries = ''.join(
 
 CLOSING = (
     '<div class="end"><span class="v">རྗེ་བཙུན་འཕགས་མ་སྒྲོལ་མ་ཁྱེད་མཁྱེན་ནོ།།</span>'
-    '<span class="v">འཇིགས་དང་སྡུག་བསྔལ་ཀུན་ལས་སྐྱབས་དུ་གསོལ།།</span>'
+    '<span class="v">འཇིགས་དང་སྡུག་བསྔལ་ཀུན་ལས་བསྐྱབ་ཏུ་གསོལ།།</span>'
     '<span class="mantra">ཨོཾ་ཏཱ་རེ་ཏུཏྟཱ་རེ་ཏུ་རེ་སྭཱ་ཧཱ།</span>'
     '<span class="tr tc" lang="zh-Hant">至尊聖度母祈以大悲攝受，<br>祈願救度我們脫離一切怖畏與苦難。<br>嗡 達咧 都達咧 都咧 梭哈</span>'
     '<span class="tr en">Noble Arya Tara, embrace us with compassion;<br>Protect us from every fear and suffering.<br>Oṃ Tāre Tuttāre Ture Svāhā</span>'
